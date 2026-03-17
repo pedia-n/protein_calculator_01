@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>タンパク質量 換算アプリ</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+:root {
+  --bg: #f5f3ee; --surface: #ffffff; --surface2: #f0ede6;
+  --accent: #2d6a4f; --accent-border: #74c69d; --accent-light: #eef6f1;
+  --text: #1a1a1a; --text-muted: #6b7280; --text-hint: #9ca3af;
+  --border: #e5e0d5; --border-strong: #c9c0b0;
+  --shadow: 0 2px 10px rgba(0,0,0,0.07);
+  --manual-bg: #fffbf0; --manual-border: #e9c46a;
+}
+body { font-family: -apple-system,'Hiragino Sans','Noto Sans JP',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:16px; }
+header { background:var(--accent); color:#fff; padding:16px 16px 12px; text-align:center; position:sticky; top:0; z-index:100; }
+header h1 { font-size:17px; font-weight:700; letter-spacing:0.04em; }
+header p  { font-size:12px; opacity:0.8; margin-top:3px; }
+.container { max-width:600px; margin:0 auto; padding:16px 12px 48px; }
+.tab-row { display:flex; border:1.5px solid var(--border-strong); border-radius:10px; overflow:hidden; margin-bottom:16px; background:var(--surface); }
+.tab-btn { flex:1; padding:14px 4px; font-size:14px; font-weight:600; font-family:inherit; border:none; cursor:pointer; background:transparent; color:var(--text-muted); -webkit-appearance:none; appearance:none; transition:background .15s,color .15s; }
+.tab-btn.active { background:var(--accent); color:#fff; }
+.tab-btn:first-child { border-right:1px solid var(--border-strong); }
+.food-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 14px 10px; margin-bottom:12px; box-shadow:var(--shadow); }
+.card-title { font-size:12px; font-weight:700; letter-spacing:0.07em; color:var(--accent); margin-bottom:12px; padding-bottom:9px; border-bottom:1px solid var(--border); }
+.row { display:flex; align-items:center; gap:8px; margin-bottom:10px; min-width:0; }
+.row:last-child { margin-bottom:0; }
+.row-label { font-size:13px; color:var(--text-muted); width:86px; min-width:86px; flex-shrink:0; line-height:1.3; }
+select, input[type="number"] { height:46px; padding:0 12px; font-size:16px; font-family:inherit; color:var(--text); background:var(--surface2); border:1px solid var(--border-strong); border-radius:8px; outline:none; -webkit-appearance:none; appearance:none; width:100%; }
+select { padding-right:32px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; background-size:12px; background-color:var(--surface2); }
+input[type="number"]:focus, select:focus { border-color:var(--accent); background:#fff; outline:none; }
+input[type="number"]::-webkit-inner-spin-button { opacity:0.4; }
+.field-wrap { display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
+.field-wrap input[type="number"] { flex:1; min-width:0; }
+.unit-sel { width:58px; min-width:58px; flex-shrink:0; padding:0 4px; text-align:center; font-size:16px; background-image:none !important; }
+.unit-txt { width:28px; min-width:28px; flex-shrink:0; text-align:left; font-size:14px; color:var(--text-hint); }
+.unit-result-sel { flex:1; max-width:180px; font-size:16px; }
+.sub-row { display:none; align-items:center; gap:8px; margin-top:-4px; margin-bottom:10px; padding:10px 12px; background:var(--accent-light); border:1px dashed var(--accent-border); border-radius:8px; }
+.sub-row.show { display:flex; }
+.sub-row .row-label { font-size:12px; color:var(--accent); }
+.sub-row input[type="number"] { height:44px; font-size:16px; }
+.sub-row .unit-txt { color:var(--accent); }
+.manual-area { display:none; background:var(--manual-bg); border:1px solid var(--manual-border); border-radius:10px; padding:12px; margin-top:2px; margin-bottom:10px; }
+.manual-area.show { display:block; }
+.manual-area-title { font-size:11px; font-weight:700; color:#b5850a; letter-spacing:0.06em; margin-bottom:10px; }
+.manual-area .row { margin-bottom:8px; }
+.manual-area .row:last-child { margin-bottom:0; }
+.manual-area .row-label { font-size:12px; color:#b5850a; width:86px; min-width:86px; }
+.manual-area input[type="number"] { background:#fff; border-color:var(--manual-border); height:44px; font-size:16px; }
+.manual-area input[type="number"]:focus { border-color:#b5850a; }
+.manual-area .unit-txt { color:#b5850a; }
+.protein-badge { background:var(--accent-light); border:1px solid var(--accent-border); border-radius:8px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.protein-badge-label { font-size:13px; color:var(--accent); font-weight:600; }
+.protein-badge-val   { font-size:22px; font-weight:700; color:var(--accent); }
+.protein-badge-unit  { font-size:14px; color:var(--accent); }
+.flow-arrow { text-align:center; font-size:22px; color:var(--accent-border); margin:-4px 0 8px; line-height:1; }
+.result-wrap { background:var(--accent); border-radius:14px; padding:18px 16px; display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; box-shadow:0 4px 14px rgba(45,106,79,0.28); }
+.result-left { flex:1; min-width:0; }
+.result-label   { font-size:13px; color:rgba(255,255,255,0.75); }
+.result-formula { font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px; line-height:1.5; }
+.result-right   { display:flex; align-items:baseline; gap:4px; margin-left:12px; flex-shrink:0; }
+.result-val     { font-size:40px; font-weight:700; color:#fff; letter-spacing:-0.02em; line-height:1; }
+.result-unit    { font-size:16px; color:rgba(255,255,255,0.8); }
+.ref-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); }
+.ref-toggle { display:flex; align-items:center; justify-content:space-between; padding:14px; cursor:pointer; font-size:14px; font-weight:600; color:var(--text-muted); user-select:none; }
+.ref-toggle:active { background:var(--surface2); }
+.ref-arrow { font-size:11px; transition:transform .2s; }
+.ref-body  { display:none; padding:0 12px 14px; }
+.ref-body.open { display:block; }
+.ref-source { font-size:11px; color:var(--text-hint); margin-bottom:10px; }
+.ref-cols   { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+.ref-col-title { font-size:12px; font-weight:700; color:var(--accent); margin-bottom:6px; }
+table.ref-table { width:100%; border-collapse:collapse; font-size:12px; }
+.ref-table th { text-align:left; padding:5px 6px; color:var(--text-muted); font-weight:600; border-bottom:1px solid var(--border); }
+.ref-table td { padding:5px 6px; border-bottom:1px solid var(--border); }
+.ref-table tr:last-child td { border-bottom:none; }
+.ref-table td:last-child { font-weight:600; color:var(--accent); text-align:right; }
+footer { text-align:center; padding:16px; font-size:11px; color:var(--text-hint); }
+@media (max-width:360px) { .ref-cols{grid-template-columns:1fr} .result-val{font-size:32px} .row-label{width:76px;min-width:76px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>タンパク質量 換算アプリ</h1>
+  <p>食品Ａのタンパク質量を食品Ｂの重量に換算</p>
+</header>
+<div class="container">
+  <div class="tab-row">
+    <button class="tab-btn active" onclick="switchTab('milk')">🥛 牛乳・乳製品</button>
+    <button class="tab-btn" onclick="switchTab('wheat')">🍜 うどん・小麦製品</button>
+  </div>
+
+  <!-- 牛乳・乳製品 -->
+  <div id="milk-panel">
+    <div class="food-card">
+      <div class="card-title">食品Ａ ― 基準となる食品</div>
+      <div class="row">
+        <span class="row-label">食品名</span>
+        <select id="milk-foodA" onchange="onFoodAChange('milk')" style="flex:1;">
+          <option value="">▼ 任意（手動入力）</option>
+          <option value="3.3">普通牛乳</option>
+          <option value="0.6">有塩バター</option>
+          <option value="1.9">生クリーム</option>
+          <option value="2.9">ヨーグルト ドリンクタイプ（加糖）</option>
+          <option value="3.6">ヨーグルト（全脂無糖）</option>
+          <option value="3.9">アイスクリーム（普通脂肪）</option>
+          <option value="7.7">加糖練乳</option>
+          <option value="8.2">クリームチーズ</option>
+          <option value="13.3">カッテージチーズ</option>
+          <option value="22.7">プロセスチーズ</option>
+          <option value="25.5">全粉乳</option>
+          <option value="34">脱脂粉乳</option>
+          <option value="44">パルメザンチーズ</option>
+        </select>
+      </div>
+      <div class="manual-area show" id="milk-manualA">
+        <div class="manual-area-title">手動入力</div>
+        <div class="row">
+          <span class="row-label">重量 〇</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-manA-w" min="0" step="0.1" inputmode="decimal" oninput="calc('milk')" placeholder="例：112">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">タンパク質 ◇</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-manA-p" min="0" step="0.01" inputmode="decimal" oninput="calc('milk')" placeholder="例：3.2">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+      <div id="milk-selA-area" style="display:none;">
+        <div class="row">
+          <span class="row-label">摂取量 〇</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-wA" min="0" step="0.1" inputmode="decimal" oninput="onWAChange('milk')" placeholder="数値">
+            <select class="unit-sel" id="milk-unitA" onchange="onUnitAChange('milk')">
+              <option value="g">g</option>
+              <option value="mai">枚</option>
+              <option value="ko">個</option>
+            </select>
+          </div>
+        </div>
+        <div class="sub-row" id="milk-subA">
+          <span class="row-label" id="milk-subA-lbl">1枚あたり</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-gPerA" min="0" step="0.1" inputmode="decimal" oninput="onWAChange('milk')" placeholder="重量">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+      <div class="protein-badge" id="milk-badgeA" style="display:none;">
+        <span class="protein-badge-label">タンパク質量 ◇（自動計算）</span>
+        <div style="display:flex;align-items:baseline;gap:4px;">
+          <span class="protein-badge-val" id="milk-pA-disp">—</span>
+          <span class="protein-badge-unit" id="milk-pA-unit-disp"></span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="food-card">
+      <div class="card-title">食品Ｂ ― 換算したい食品</div>
+      <div class="row">
+        <span class="row-label">食品名</span>
+        <select id="milk-foodB" onchange="onFoodBChange('milk')" style="flex:1;">
+          <option value="">▼ 任意（手動入力）</option>
+          <option value="3.3">普通牛乳</option>
+          <option value="0.6">有塩バター</option>
+          <option value="1.9">生クリーム</option>
+          <option value="2.9">ヨーグルト ドリンクタイプ（加糖）</option>
+          <option value="3.6">ヨーグルト（全脂無糖）</option>
+          <option value="3.9">アイスクリーム（普通脂肪）</option>
+          <option value="7.7">加糖練乳</option>
+          <option value="8.2">クリームチーズ</option>
+          <option value="13.3">カッテージチーズ</option>
+          <option value="22.7">プロセスチーズ</option>
+          <option value="25.5">全粉乳</option>
+          <option value="34">脱脂粉乳</option>
+          <option value="44">パルメザンチーズ</option>
+        </select>
+      </div>
+      <div class="manual-area show" id="milk-manualB">
+        <div class="manual-area-title">手動入力（重量とタンパク質量を直接入力）</div>
+        <div class="row">
+          <span class="row-label">重量</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-manB-w" min="0" step="0.1" inputmode="decimal" oninput="calc('milk')" placeholder="例：112">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">タンパク質</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-manB-p" min="0" step="0.01" inputmode="decimal" oninput="calc('milk')" placeholder="例：3.2">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+      <div id="milk-selB-area" style="display:none;">
+        <div class="row">
+          <span class="row-label">100g あたり</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-pB100" min="0" step="0.01" inputmode="decimal" oninput="calc('milk')" placeholder="タンパク質量">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">結果の単位</span>
+          <select class="unit-result-sel" id="milk-unitB" onchange="onUnitBChange('milk')">
+            <option value="g">g（グラム）</option>
+            <option value="mai">枚</option>
+            <option value="ko">個</option>
+          </select>
+        </div>
+        <div class="sub-row" id="milk-subB">
+          <span class="row-label" id="milk-subB-lbl">1枚あたり</span>
+          <div class="field-wrap">
+            <input type="number" id="milk-gPerB" min="0" step="0.1" inputmode="decimal" oninput="calc('milk')" placeholder="重量">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="result-wrap">
+      <div class="result-left">
+        <div class="result-label">食品Ｂの必要量（△）</div>
+        <div class="result-formula" id="milk-formula">◇ ÷ 食品Ｂの100gあたりタンパク質 × 100</div>
+      </div>
+      <div class="result-right">
+        <span class="result-val" id="milk-result">—</span>
+        <span class="result-unit" id="milk-unit"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- うどん・小麦製品 -->
+  <div id="wheat-panel" style="display:none;">
+    <div class="food-card">
+      <div class="card-title">食品Ａ ― 基準となる食品</div>
+      <div class="row">
+        <span class="row-label">食品名</span>
+        <select id="wheat-foodA" onchange="onFoodAChange('wheat')" style="flex:1;">
+          <option value="">▼ 任意（手動入力）</option>
+          <option value="2.6">うどん（ゆで）</option>
+          <option value="3.5">そうめん・ひやむぎ（ゆで）</option>
+          <option value="4.9">やきそば（蒸し中華めん）</option>
+          <option value="4.9">ラーメン（ゆで中華めん）</option>
+          <option value="5.8">スパゲッティ・マカロニ（ゆで）</option>
+          <option value="7.8">ホットケーキミックス</option>
+          <option value="8.3">春巻きの皮</option>
+          <option value="9.3">餃子の皮</option>
+          <option value="8.9">食パン</option>
+          <option value="9.5">そうめん・ひやむぎ（乾めん）</option>
+          <option value="8.3">薄力粉（1等）</option>
+          <option value="9.0">中力粉（１等）</option>
+          <option value="11.8">強力粉（１等）</option>
+        </select>
+      </div>
+      <div class="manual-area show" id="wheat-manualA">
+        <div class="manual-area-title">手動入力</div>
+        <div class="row">
+          <span class="row-label">重量 〇</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-manA-w" min="0" step="0.1" inputmode="decimal" oninput="calc('wheat')" placeholder="例：200">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">タンパク質 ◇</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-manA-p" min="0" step="0.01" inputmode="decimal" oninput="calc('wheat')" placeholder="例：5.2">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+      <div id="wheat-selA-area" style="display:none;">
+        <div class="row">
+          <span class="row-label">摂取量 〇</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-wA" min="0" step="0.1" inputmode="decimal" oninput="onWAChange('wheat')" placeholder="数値">
+            <select class="unit-sel" id="wheat-unitA" onchange="onUnitAChange('wheat')">
+              <option value="g">g</option>
+              <option value="mai">枚</option>
+              <option value="ko">個</option>
+            </select>
+          </div>
+        </div>
+        <div class="sub-row" id="wheat-subA">
+          <span class="row-label" id="wheat-subA-lbl">1枚あたり</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-gPerA" min="0" step="0.1" inputmode="decimal" oninput="onWAChange('wheat')" placeholder="重量">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+      <div class="protein-badge" id="wheat-badgeA" style="display:none;">
+        <span class="protein-badge-label">タンパク質量 ◇（自動計算）</span>
+        <div style="display:flex;align-items:baseline;gap:4px;">
+          <span class="protein-badge-val" id="wheat-pA-disp">—</span>
+          <span class="protein-badge-unit" id="wheat-pA-unit-disp"></span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="food-card">
+      <div class="card-title">食品Ｂ ― 換算したい食品</div>
+      <div class="row">
+        <span class="row-label">食品名</span>
+        <select id="wheat-foodB" onchange="onFoodBChange('wheat')" style="flex:1;">
+          <option value="">▼ 任意（手動入力）</option>
+          <option value="2.6">うどん（ゆで）</option>
+          <option value="3.5">そうめん・ひやむぎ（ゆで）</option>
+          <option value="4.9">やきそば（蒸し中華めん）</option>
+          <option value="4.9">ラーメン（ゆで中華めん）</option>
+          <option value="5.8">スパゲッティ・マカロニ（ゆで）</option>
+          <option value="7.8">ホットケーキミックス</option>
+          <option value="8.3">春巻きの皮</option>
+          <option value="9.3">餃子の皮</option>
+          <option value="8.9">食パン</option>
+          <option value="9.5">そうめん・ひやむぎ（乾めん）</option>
+          <option value="8.3">薄力粉（1等）</option>
+          <option value="9.0">中力粉（１等）</option>
+          <option value="11.8">強力粉（１等）</option>
+        </select>
+      </div>
+      <div class="manual-area show" id="wheat-manualB">
+        <div class="manual-area-title">手動入力（重量とタンパク質量を直接入力）</div>
+        <div class="row">
+          <span class="row-label">重量</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-manB-w" min="0" step="0.1" inputmode="decimal" oninput="calc('wheat')" placeholder="例：112">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">タンパク質</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-manB-p" min="0" step="0.01" inputmode="decimal" oninput="calc('wheat')" placeholder="例：3.2">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+      <div id="wheat-selB-area" style="display:none;">
+        <div class="row">
+          <span class="row-label">100g あたり</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-pB100" min="0" step="0.01" inputmode="decimal" oninput="calc('wheat')" placeholder="タンパク質量">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+        <div class="row">
+          <span class="row-label">結果の単位</span>
+          <select class="unit-result-sel" id="wheat-unitB" onchange="onUnitBChange('wheat')">
+            <option value="g">g（グラム）</option>
+            <option value="mai">枚</option>
+            <option value="ko">個</option>
+          </select>
+        </div>
+        <div class="sub-row" id="wheat-subB">
+          <span class="row-label" id="wheat-subB-lbl">1枚あたり</span>
+          <div class="field-wrap">
+            <input type="number" id="wheat-gPerB" min="0" step="0.1" inputmode="decimal" oninput="calc('wheat')" placeholder="重量">
+            <span class="unit-txt">g</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="result-wrap">
+      <div class="result-left">
+        <div class="result-label">食品Ｂの必要量（△）</div>
+        <div class="result-formula" id="wheat-formula">◇ ÷ 食品Ｂの100gあたりタンパク質 × 100</div>
+      </div>
+      <div class="result-right">
+        <span class="result-val" id="wheat-result">—</span>
+        <span class="result-unit" id="wheat-unit"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 成分表 -->
+  <div class="ref-section">
+    <div class="ref-toggle" onclick="toggleRef()">
+      <span>食品成分表を見る（タンパク質量 / 100g）</span>
+      <span class="ref-arrow" id="ref-arrow">▼</span>
+    </div>
+    <div class="ref-body" id="ref-body">
+      <p class="ref-source">出典：日本食品標準成分表（文部科学省）</p>
+      <div class="ref-cols">
+        <div>
+          <div class="ref-col-title">🥛 牛乳・乳製品</div>
+          <table class="ref-table">
+            <tr><th>食品</th><th>タンパク質</th></tr>
+            <tr><td>普通牛乳</td><td>3.3g</td></tr>
+            <tr><td>有塩バター</td><td>0.6g</td></tr>
+            <tr><td>生クリーム</td><td>1.9g</td></tr>
+            <tr><td>ヨーグルト D.T.</td><td>2.9g</td></tr>
+            <tr><td>ヨーグルト 無糖</td><td>3.6g</td></tr>
+            <tr><td>アイスクリーム</td><td>3.9g</td></tr>
+            <tr><td>加糖練乳</td><td>7.7g</td></tr>
+            <tr><td>クリームチーズ</td><td>8.2g</td></tr>
+            <tr><td>カッテージチーズ</td><td>13.3g</td></tr>
+            <tr><td>プロセスチーズ</td><td>22.7g</td></tr>
+            <tr><td>全粉乳</td><td>25.5g</td></tr>
+            <tr><td>脱脂粉乳</td><td>34.0g</td></tr>
+            <tr><td>パルメザンチーズ</td><td>44.0g</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="ref-col-title">🍜 うどん・小麦製品</div>
+          <table class="ref-table">
+            <tr><th>食品</th><th>タンパク質</th></tr>
+            <tr><td>うどん（ゆで）</td><td>2.6g</td></tr>
+            <tr><td>そうめん（ゆで）</td><td>3.5g</td></tr>
+            <tr><td>やきそば（蒸し）</td><td>4.9g</td></tr>
+            <tr><td>ラーメン（ゆで）</td><td>4.9g</td></tr>
+            <tr><td>スパゲッティ（ゆで）</td><td>5.8g</td></tr>
+            <tr><td>ホットケーキ MIX</td><td>7.8g</td></tr>
+            <tr><td>春巻きの皮</td><td>8.3g</td></tr>
+            <tr><td>餃子の皮</td><td>9.3g</td></tr>
+            <tr><td>食パン</td><td>8.9g</td></tr>
+            <tr><td>そうめん（乾）</td><td>9.5g</td></tr>
+            <tr><td>薄力粉（1等）</td><td>8.3g</td></tr>
+            <tr><td>中力粉（１等）</td><td>9.0g</td></tr>
+            <tr><td>強力粉（１等）</td><td>11.8g</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>日本食品標準成分表（文部科学省）準拠 ／ タンパク質量換算アプリ</footer>
+<script>
+const UL={g:'g',mai:'枚',ko:'個'};
+function switchTab(t){
+  document.getElementById('milk-panel').style.display=t==='milk'?'':'none';
+  document.getElementById('wheat-panel').style.display=t==='wheat'?'':'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.toggle('active',(i===0&&t==='milk')||(i===1&&t==='wheat'));});
+}
+function showSub(id,unit,lblId){
+  const sub=document.getElementById(id),lbl=document.getElementById(lblId);
+  if(unit==='g')sub.classList.remove('show');
+  else{lbl.textContent='1'+UL[unit]+'あたり';sub.classList.add('show');}
+}
+function onUnitAChange(cat){showSub(cat+'-subA',document.getElementById(cat+'-unitA').value,cat+'-subA-lbl');onWAChange(cat);}
+function onUnitBChange(cat){showSub(cat+'-subB',document.getElementById(cat+'-unitB').value,cat+'-subB-lbl');calc(cat);}
+function onFoodAChange(cat){
+  const v=document.getElementById(cat+'-foodA').value,isM=(v==='');
+  document.getElementById(cat+'-manualA').classList.toggle('show',isM);
+  document.getElementById(cat+'-selA-area').style.display=isM?'none':'';
+  document.getElementById(cat+'-badgeA').style.display=isM?'none':'';
+  if(!isM)onWAChange(cat);
+  calc(cat);
+}
+function onWAChange(cat){
+  const per100=parseFloat(document.getElementById(cat+'-foodA').value);
+  if(isNaN(per100))return;
+  const unit=document.getElementById(cat+'-unitA').value;
+  const num=parseFloat(document.getElementById(cat+'-wA').value);
+  let wg=NaN;
+  if(unit==='g'){wg=num;}
+  else{const gpu=parseFloat(document.getElementById(cat+'-gPerA').value);if(!isNaN(num)&&num>0&&!isNaN(gpu)&&gpu>0)wg=num*gpu;}
+  const dispEl=document.getElementById(cat+'-pA-disp'),unitEl=document.getElementById(cat+'-pA-unit-disp');
+  document.getElementById(cat+'-badgeA').style.display='';
+  if(!isNaN(wg)&&wg>0){const pa=per100*wg/100;dispEl.textContent=pa.toFixed(2);unitEl.textContent='g';}
+  else{dispEl.textContent='—';unitEl.textContent='';}
+  calc(cat);
+}
+function onFoodBChange(cat){
+  const v=document.getElementById(cat+'-foodB').value,isM=(v==='');
+  document.getElementById(cat+'-manualB').classList.toggle('show',isM);
+  document.getElementById(cat+'-selB-area').style.display=isM?'none':'';
+  if(!isM)document.getElementById(cat+'-pB100').value=parseFloat(v).toFixed(1);
+  calc(cat);
+}
+function getPA(cat){
+  if(document.getElementById(cat+'-foodA').value==='')return parseFloat(document.getElementById(cat+'-manA-p').value);
+  return parseFloat(document.getElementById(cat+'-pA-disp').textContent);
+}
+function getPB100(cat){
+  if(document.getElementById(cat+'-foodB').value===''){
+    const bw=parseFloat(document.getElementById(cat+'-manB-w').value);
+    const bp=parseFloat(document.getElementById(cat+'-manB-p').value);
+    if(!isNaN(bw)&&bw>0&&!isNaN(bp)&&bp>=0)return bp/bw*100;
+    return NaN;
+  }
+  return parseFloat(document.getElementById(cat+'-pB100').value);
+}
+function calc(cat){
+  const pA=getPA(cat),pB100=getPB100(cat);
+  const resEl=document.getElementById(cat+'-result'),uniEl=document.getElementById(cat+'-unit');
+  const fmlEl=document.getElementById(cat+'-formula');
+  const isManualB=(document.getElementById(cat+'-foodB').value==='');
+  fmlEl.textContent=isManualB?'◇ ÷ （食品Ｂのタンパク質 ÷ 食品Ｂの重量 × 100） × 100':'◇ ÷ 食品Ｂの100gあたりタンパク質 × 100';
+  if(!isNaN(pA)&&pA>0&&!isNaN(pB100)&&pB100>0){
+    const dg=(pA/pB100)*100;
+    if(isManualB){resEl.textContent=dg.toFixed(1);uniEl.textContent='g';}
+    else{
+      const unitB=document.getElementById(cat+'-unitB').value;
+      if(unitB==='g'){resEl.textContent=dg.toFixed(1);uniEl.textContent='g';}
+      else{
+        const gpu=parseFloat(document.getElementById(cat+'-gPerB').value);
+        if(!isNaN(gpu)&&gpu>0){resEl.textContent=(dg/gpu).toFixed(1);uniEl.textContent=UL[unitB];}
+        else{resEl.textContent='—';uniEl.textContent='';}
+      }
+    }
+  }else{resEl.textContent='—';uniEl.textContent='';}
+}
+function toggleRef(){
+  const b=document.getElementById('ref-body'),a=document.getElementById('ref-arrow');
+  const o=b.classList.toggle('open');
+  a.style.transform=o?'rotate(180deg)':'';
+}
+</script>
+</body>
+</html>
